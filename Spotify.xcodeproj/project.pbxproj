@@ -46,6 +46,8 @@
 		04BC44BF262D5D7900ED9FC9 /* EpisodeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BC44BE262D5D7900ED9FC9 /* EpisodeRow.swift */; };
 		04BC44CF262D67DE00ED9FC9 /* ShowRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BC44CE262D67DE00ED9FC9 /* ShowRow.swift */; };
 		04CA50FE262D6CCC0084E839 /* Isles.json in Resources */ = {isa = PBXBuildFile; fileRef = 04CA50FD262D6CCC0084E839 /* Isles.json */; };
+		D597A3D82DEC5F6500DE63B4 /* APIManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D597A3D72DEC5F6500DE63B4 /* APIManager.swift */; };
+		D597A3DA2DEC603700DE63B4 /* SpotifyContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D597A3D92DEC603700DE63B4 /* SpotifyContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,6 +113,8 @@
 		04BC44BE262D5D7900ED9FC9 /* EpisodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeRow.swift; sourceTree = "<group>"; };
 		04BC44CE262D67DE00ED9FC9 /* ShowRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowRow.swift; sourceTree = "<group>"; };
 		04CA50FD262D6CCC0084E839 /* Isles.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Isles.json; sourceTree = "<group>"; };
+		D597A3D72DEC5F6500DE63B4 /* APIManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIManager.swift; sourceTree = "<group>"; };
+		D597A3D92DEC603700DE63B4 /* SpotifyContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -213,6 +217,7 @@
 		047988EC2629F1080069F926 /* Spotify */ = {
 			isa = PBXGroup;
 			children = (
+				D597A3D52DEC5F3800DE63B4 /* Manager */,
 				047988ED2629F1080069F926 /* SpotifyApp.swift */,
 				047989262629F11E0069F926 /* ContentView.swift */,
 				044E4B33262B6F9200493065 /* Home */,
@@ -224,6 +229,7 @@
 				047988F62629F1090069F926 /* Info.plist */,
 				047988F32629F1090069F926 /* Preview Content */,
 				04BC448E262D568700ED9FC9 /* SearchBox.swift */,
+				D597A3D92DEC603700DE63B4 /* SpotifyContentView.swift */,
 			);
 			path = Spotify;
 			sourceTree = "<group>";
@@ -347,6 +353,14 @@
 				047F64DF262DF88600F862E4 /* AlbumDetails.swift */,
 			);
 			path = "Album Details";
+			sourceTree = "<group>";
+		};
+		D597A3D52DEC5F3800DE63B4 /* Manager */ = {
+			isa = PBXGroup;
+			children = (
+				D597A3D72DEC5F6500DE63B4 /* APIManager.swift */,
+			);
+			path = Manager;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -504,6 +518,8 @@
 				047989302629F11E0069F926 /* ContentView.swift in Sources */,
 				047989312629F11E0069F926 /* LibraryView.swift in Sources */,
 				04BC44BF262D5D7900ED9FC9 /* EpisodeRow.swift in Sources */,
+				D597A3DA2DEC603700DE63B4 /* SpotifyContentView.swift in Sources */,
+				D597A3D82DEC5F6500DE63B4 /* APIManager.swift in Sources */,
 				04BC4482262D4AD100ED9FC9 /* GenreView.swift in Sources */,
 				0479892A2629F11E0069F926 /* PlaylistsView.swift in Sources */,
 				044E0274262C4FA30094B42C /* PlaylistData.swift in Sources */,
@@ -599,7 +615,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -654,7 +670,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -674,7 +690,7 @@
 				DEVELOPMENT_TEAM = 3S7LBTRGU5;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Spotify/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -696,7 +712,7 @@
 				DEVELOPMENT_TEAM = 3S7LBTRGU5;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Spotify/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
