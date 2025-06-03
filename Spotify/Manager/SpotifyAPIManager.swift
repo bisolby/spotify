@@ -19,16 +19,25 @@ class SpotifyAPIManager: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private init() {}
+    private init() {
+        // 앱 시작 시 토큰 상태 확인
+        tokenManager.debugTokenStatus()
+    }
     
     // MARK: - Authentication
     func authenticateIfNeeded() async {
-        if !tokenManager.isTokenValid {
+        // 토큰이 없거나 만료되었거나 갱신이 필요한 경우
+        if !tokenManager.isTokenValid || tokenManager.needsRenewal {
+            print("🔄 토큰 갱신 필요 - 새 토큰 요청")
             await getAccessToken()
+        } else {
+            print("✅ 토큰 유효 - 갱신 불필요")
         }
     }
     
     func getAccessToken() async {
+        print("🔑 새 토큰 요청 시작...")
+        
         isLoading = true
         errorMessage = nil
         
@@ -41,6 +50,8 @@ class SpotifyAPIManager: ObservableObject {
         let headers = ["Content-Type": "application/x-www-form-urlencoded"]
         
         do {
+            print("🌐 Spotify 토큰 엔드포인트 호출...")
+            
             let tokenResponse: SpotifyAccessToken = try await networkService.performRequest(
                 url: url,
                 method: .POST,
@@ -49,11 +60,18 @@ class SpotifyAPIManager: ObservableObject {
                 responseType: SpotifyAccessToken.self
             )
             
+            print("✅ 토큰 응답 수신 성공")
+            print("   토큰 타입: \(tokenResponse.tokenType)")
+            print("   만료 시간: \(tokenResponse.expiresIn)초")
+            
             // TokenManager에서 토큰 저장 (UI 업데이트 자동 발생)
             tokenManager.saveToken(tokenResponse.accessToken, expiresIn: tokenResponse.expiresIn)
             isLoading = false
             
+            print("🎉 토큰 설정 완료!")
+            
         } catch {
+            print("❌ 토큰 요청 실패: \(error)")
             await handleError(error)
         }
     }
@@ -171,6 +189,14 @@ class SpotifyAPIManager: ObservableObject {
     private func handleError(_ error: Error) async {
         logger.logError(error)
         
+        // 401 에러인 경우 토큰 갱신 시도
+        if let networkError = error as? NetworkError, case .unauthorized = networkError {
+            print("🔄 401 에러 감지 - 토큰 갱신 시도")
+            tokenManager.clearToken()
+            await getAccessToken()
+            return
+        }
+        
         if let networkError = error as? NetworkError {
             errorMessage = networkError.localizedDescription
         } else {
@@ -185,6 +211,8 @@ class SpotifyAPIManager: ObservableObject {
     }
     
     func logout() {
+        print("🚪 로그아웃 시작...")
+        
         // 토큰 삭제 (UI 자동 업데이트)
         tokenManager.clearToken()
         
@@ -193,6 +221,11 @@ class SpotifyAPIManager: ObservableObject {
         errorMessage = nil
         
         print("🚪 로그아웃 완료")
+    }
+    
+    // 토큰 상태 확인용 메서드 (디버깅)
+    func checkTokenStatus() {
+        tokenManager.debugTokenStatus()
     }
 }
 

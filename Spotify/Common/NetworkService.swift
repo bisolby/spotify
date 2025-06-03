@@ -140,6 +140,9 @@ class TokenManager: ObservableObject {
     private let tokenKey = "com.bisolby.spotify_access_token"
     private let expirationKey = "com.bisolby.spotify_token_expiration"
     
+    // 토큰 만료 5분 전에 갱신하도록 안전 마진 설정
+    private let renewalBufferTime: TimeInterval = 300 // 5분
+    
     init() {
         loadTokenFromStorage()
     }
@@ -147,13 +150,34 @@ class TokenManager: ObservableObject {
     var isTokenValid: Bool {
         guard let token = accessToken,
               let expirationDate = tokenExpirationDate else {
+            print("❌ 토큰 검증 실패: 토큰 또는 만료 시간이 없음")
             return false
         }
-        return !token.isEmpty && expirationDate > Date()
+        
+        let now = Date()
+        let isValid = !token.isEmpty && expirationDate > now
+        
+        if isValid {
+            let timeRemaining = expirationDate.timeIntervalSince(now)
+            print("✅ 토큰 유효: \(Int(timeRemaining/60))분 \(Int(timeRemaining.truncatingRemainder(dividingBy: 60)))초 남음")
+        } else {
+            print("❌ 토큰 만료됨: \(expirationDate) < \(now)")
+        }
+        
+        return isValid
+    }
+    
+    var needsRenewal: Bool {
+        guard let expirationDate = tokenExpirationDate else { return true }
+        let timeUntilExpiration = expirationDate.timeIntervalSince(Date())
+        return timeUntilExpiration <= renewalBufferTime
     }
     
     func saveToken(_ token: String, expiresIn: Int) {
-        let expirationDate = Date().addingTimeInterval(TimeInterval(expiresIn))
+        // 안전 마진을 고려하여 만료 시간 설정 (실제 만료 시간보다 30초 일찍)
+        let safetyMargin: TimeInterval = 30
+        let actualExpiresIn = TimeInterval(expiresIn) - safetyMargin
+        let expirationDate = Date().addingTimeInterval(actualExpiresIn)
         
         // UI 업데이트를 메인 스레드에서 수행
         self.accessToken = token
@@ -163,10 +187,19 @@ class TokenManager: ObservableObject {
         userDefaults.set(token, forKey: tokenKey)
         userDefaults.set(expirationDate, forKey: expirationKey)
         
-        print("✅ 토큰 저장 완료: \(token.prefix(20))...")
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .medium
+        
+        print("✅ 토큰 저장 완료")
+        print("   토큰: \(token.prefix(20))...")
+        print("   만료 시간: \(formatter.string(from: expirationDate))")
+        print("   유효 시간: \(Int(actualExpiresIn/60))분")
     }
     
     func clearToken() {
+        print("🗑️ 토큰 삭제 시작")
+        
         // UI 업데이트를 메인 스레드에서 수행
         self.accessToken = nil
         self.tokenExpirationDate = nil
@@ -179,16 +212,35 @@ class TokenManager: ObservableObject {
     }
     
     private func loadTokenFromStorage() {
-        accessToken = userDefaults.string(forKey: tokenKey)
-        tokenExpirationDate = userDefaults.object(forKey: expirationKey) as? Date
+        print("📱 저장된 토큰 로드 시작...")
         
-        // Clear token if expired
-        if !isTokenValid {
-            clearToken()
-        }
+        let storedToken = userDefaults.string(forKey: tokenKey)
+        let storedExpirationDate = userDefaults.object(forKey: expirationKey) as? Date
         
-        if let token = accessToken {
-            print("📱 저장된 토큰 로드: \(token.prefix(20))...")
+        if let token = storedToken, let expiration = storedExpirationDate {
+            let now = Date()
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .medium
+            
+            print("📱 저장된 데이터 발견:")
+            print("   토큰: \(token.prefix(20))...")
+            print("   만료 시간: \(formatter.string(from: expiration))")
+            print("   현재 시간: \(formatter.string(from: now))")
+            
+            if expiration > now {
+                // 토큰이 아직 유효함
+                self.accessToken = token
+                self.tokenExpirationDate = expiration
+                
+                let timeRemaining = expiration.timeIntervalSince(now)
+                print("✅ 저장된 토큰 로드 성공: \(Int(timeRemaining/60))분 \(Int(timeRemaining.truncatingRemainder(dividingBy: 60)))초 남음")
+            } else {
+                // 토큰이 만료됨 - UserDefaults에서만 제거하고 로그 출력
+                print("⏰ 저장된 토큰이 만료됨 - 새 토큰 필요")
+                userDefaults.removeObject(forKey: tokenKey)
+                userDefaults.removeObject(forKey: expirationKey)
+            }
         } else {
             print("❌ 저장된 토큰 없음")
         }
@@ -196,9 +248,24 @@ class TokenManager: ObservableObject {
     
     func authorizationHeader() -> [String: String] {
         guard let token = accessToken else {
+            print("❌ 인증 헤더 생성 실패: 토큰 없음")
             return [:]
         }
         return ["Authorization": "Bearer \(token)"]
+    }
+    
+    // 토큰 상태 디버깅용 메서드
+    func debugTokenStatus() {
+        print("🔍 토큰 상태 디버깅:")
+        print("   토큰 존재: \(accessToken != nil)")
+        print("   만료 시간 존재: \(tokenExpirationDate != nil)")
+        print("   토큰 유효: \(isTokenValid)")
+        print("   갱신 필요: \(needsRenewal)")
+        
+        if let expiration = tokenExpirationDate {
+            let timeRemaining = expiration.timeIntervalSince(Date())
+            print("   남은 시간: \(Int(timeRemaining/60))분 \(Int(timeRemaining.truncatingRemainder(dividingBy: 60)))초")
+        }
     }
 }
 

@@ -54,6 +54,16 @@ struct ContentView: View {
                 ArtistDetailView(artist: artist)
             }
         }
+        // 토큰 상태가 변경될 때 검색 결과 초기화
+        .onChange(of: apiManager.tokenManager.isTokenValid) { oldValue, newValue in
+            if !newValue {
+                // 토큰이 무효화되면 검색 결과 초기화
+                searchResults = []
+                searchText = ""
+                selectedArtist = nil
+                showingArtistDetail = false
+            }
+        }
     }
     
     // MARK: - Main Search View
@@ -82,15 +92,37 @@ struct ContentView: View {
     // MARK: - Featured Artists View
     private var featuredArtistsView: some View {
         ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(SpotifyAPIManager.Constants.sampleArtistIds, id: \.self) { artistId in
-                    FeaturedArtistCard(artistId: artistId) { artist in
-                        selectedArtist = artist
-                        showingArtistDetail = true
+            if !apiManager.tokenManager.isTokenValid {
+                VStack(spacing: 20) {
+                    Text("🔐 인증이 필요합니다")
+                        .font(.headline)
+                    
+                    Text("추천 아티스트를 보려면 먼저 로그인해주세요.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Button("설정에서 로그인") {
+                        selectedTab = 2
+                    }
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                LazyVStack(spacing: 16) {
+                    ForEach(SpotifyAPIManager.Constants.sampleArtistIds, id: \.self) { artistId in
+                        FeaturedArtistCard(artistId: artistId) { artist in
+                            selectedArtist = artist
+                            showingArtistDetail = true
+                        }
                     }
                 }
+                .padding()
             }
-            .padding()
         }
         .navigationTitle("추천 아티스트")
     }
@@ -104,13 +136,33 @@ struct ContentView: View {
                         .foregroundColor(apiManager.tokenManager.isTokenValid ? .green : .red)
                     Text(apiManager.tokenManager.isTokenValid ? "인증됨" : "인증 필요")
                 }
+                
                 if let expirationDate = apiManager.tokenManager.tokenExpirationDate {
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("토큰 만료 시간")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Text(expirationDate.formatted())
+                            .font(.caption)
+                        
+                        // 남은 시간 표시
+                        let timeRemaining = expirationDate.timeIntervalSince(Date())
+                        if timeRemaining > 0 {
+                            Text("남은 시간: \(Int(timeRemaining/60))분 \(Int(timeRemaining.truncatingRemainder(dividingBy: 60)))초")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                        } else {
+                            Text("만료됨")
+                                .font(.caption2)
+                                .foregroundColor(.red)
+                        }
                     }
+                }
+                
+                if apiManager.tokenManager.needsRenewal {
+                    Text("⚠️ 토큰 갱신이 곧 필요합니다")
+                        .font(.caption)
+                        .foregroundColor(.orange)
                 }
             }
             
@@ -123,9 +175,45 @@ struct ContentView: View {
                 .disabled(apiManager.isLoading)
                 
                 Button("로그아웃") {
-                    apiManager.logout()
+                    Task {
+                        await MainActor.run {
+                            apiManager.logout()
+                        }
+                    }
                 }
                 .foregroundColor(.red)
+                .disabled(!apiManager.tokenManager.isTokenValid)
+            }
+            
+            Section("디버그") {
+                Button("토큰 상태 확인") {
+                    apiManager.checkTokenStatus()
+                }
+                
+                Button("인증 확인") {
+                    Task {
+                        await apiManager.authenticateIfNeeded()
+                    }
+                }
+                .disabled(apiManager.isLoading)
+            }
+            
+            Section("상태") {
+                HStack {
+                    Text("로딩 상태")
+                    Spacer()
+                    if apiManager.isLoading {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("로딩 중")
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        Text("준비됨")
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             
             Section("정보") {
@@ -134,7 +222,7 @@ struct ContentView: View {
                 HStack {
                     Text("앱 버전")
                     Spacer()
-                    Text("1.0.0")
+                    Text("1.0.1")
                         .foregroundColor(.secondary)
                 }
             }
