@@ -3,17 +3,17 @@
 import Foundation
 
 // MARK: - Spotify API Manager
+@MainActor
 class SpotifyAPIManager: ObservableObject {
     static let shared = SpotifyAPIManager()
     
-    // TODO: Replace with your actual credentials
     private let clientId = "e73f6a4a362e49c48257d5eb45f61d72"
     private let clientSecret = "25fa9da35640423b80dbbb295348c07d"
     
     private let tokenEndpoint = "https://accounts.spotify.com/api/token"
     private let networkService = NetworkService.shared
     private let requestBuilder = SpotifyAPIRequest()
-    private let logger = APILogger.shared
+    private let logger = APILogger()
     
     @Published var tokenManager = TokenManager()
     @Published var isLoading = false
@@ -29,10 +29,8 @@ class SpotifyAPIManager: ObservableObject {
     }
     
     func getAccessToken() async {
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         
         guard let url = URL(string: tokenEndpoint) else {
             await handleError(NetworkError.invalidURL)
@@ -51,17 +49,16 @@ class SpotifyAPIManager: ObservableObject {
                 responseType: SpotifyAccessToken.self
             )
             
-            await MainActor.run {
-                tokenManager.saveToken(tokenResponse.accessToken, expiresIn: tokenResponse.expiresIn)
-                isLoading = false
-            }
+            // TokenManager에서 토큰 저장 (UI 업데이트 자동 발생)
+            tokenManager.saveToken(tokenResponse.accessToken, expiresIn: tokenResponse.expiresIn)
+            isLoading = false
             
         } catch {
             await handleError(error)
         }
     }
     
-    // MARK: - Artist Operations
+    // MARK: - API Request
     func getArtist(artistId: String) async -> SpotifyArtist? {
         await authenticateIfNeeded()
         
@@ -70,10 +67,8 @@ class SpotifyAPIManager: ObservableObject {
             return nil
         }
         
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         
         do {
             let artist: SpotifyArtist = try await networkService.performRequest(
@@ -82,10 +77,7 @@ class SpotifyAPIManager: ObservableObject {
                 responseType: SpotifyArtist.self
             )
             
-            await MainActor.run {
-                isLoading = false
-            }
-            
+            isLoading = false
             return artist
             
         } catch {
@@ -102,10 +94,8 @@ class SpotifyAPIManager: ObservableObject {
             return nil
         }
         
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         
         do {
             let searchResponse: SpotifySearchResponse = try await networkService.performRequest(
@@ -114,10 +104,7 @@ class SpotifyAPIManager: ObservableObject {
                 responseType: SpotifySearchResponse.self
             )
             
-            await MainActor.run {
-                isLoading = false
-            }
-            
+            isLoading = false
             return searchResponse.artists.items
             
         } catch {
@@ -126,7 +113,6 @@ class SpotifyAPIManager: ObservableObject {
         }
     }
     
-    // MARK: - Additional Features
     func getArtistAlbums(artistId: String, limit: Int = 20) async -> [SpotifyAlbum]? {
         await authenticateIfNeeded()
         
@@ -135,10 +121,8 @@ class SpotifyAPIManager: ObservableObject {
             return nil
         }
         
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         
         do {
             let albumsResponse: SpotifyAlbumsResponse = try await networkService.performRequest(
@@ -147,10 +131,7 @@ class SpotifyAPIManager: ObservableObject {
                 responseType: SpotifyAlbumsResponse.self
             )
             
-            await MainActor.run {
-                isLoading = false
-            }
-            
+            isLoading = false
             return albumsResponse.items
             
         } catch {
@@ -167,10 +148,8 @@ class SpotifyAPIManager: ObservableObject {
             return nil
         }
         
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         
         do {
             let tracksResponse: SpotifyTopTracksResponse = try await networkService.performRequest(
@@ -179,10 +158,7 @@ class SpotifyAPIManager: ObservableObject {
                 responseType: SpotifyTopTracksResponse.self
             )
             
-            await MainActor.run {
-                isLoading = false
-            }
-            
+            isLoading = false
             return tracksResponse.tracks
             
         } catch {
@@ -195,14 +171,12 @@ class SpotifyAPIManager: ObservableObject {
     private func handleError(_ error: Error) async {
         logger.logError(error)
         
-        await MainActor.run {
-            if let networkError = error as? NetworkError {
-                errorMessage = networkError.localizedDescription
-            } else {
-                errorMessage = error.localizedDescription
-            }
-            isLoading = false
+        if let networkError = error as? NetworkError {
+            errorMessage = networkError.localizedDescription
+        } else {
+            errorMessage = error.localizedDescription
         }
+        isLoading = false
     }
     
     // MARK: - Utility Methods
@@ -211,7 +185,14 @@ class SpotifyAPIManager: ObservableObject {
     }
     
     func logout() {
+        // 토큰 삭제 (UI 자동 업데이트)
         tokenManager.clearToken()
+        
+        // 추가적인 상태 초기화
+        isLoading = false
+        errorMessage = nil
+        
+        print("🚪 로그아웃 완료")
     }
 }
 

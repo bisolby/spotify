@@ -104,7 +104,6 @@ struct ContentView: View {
                         .foregroundColor(apiManager.tokenManager.isTokenValid ? .green : .red)
                     Text(apiManager.tokenManager.isTokenValid ? "인증됨" : "인증 필요")
                 }
-                
                 if let expirationDate = apiManager.tokenManager.tokenExpirationDate {
                     VStack(alignment: .leading) {
                         Text("토큰 만료 시간")

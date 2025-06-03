@@ -131,13 +131,14 @@ struct SpotifyAPIRequest {
 }
 
 // MARK: - Token Manager
+@MainActor
 class TokenManager: ObservableObject {
     @Published var accessToken: String?
     @Published var tokenExpirationDate: Date?
     
     private let userDefaults = UserDefaults.standard
-    private let tokenKey = "spotify_access_token"
-    private let expirationKey = "spotify_token_expiration"
+    private let tokenKey = "com.bisolby.spotify_access_token"
+    private let expirationKey = "com.bisolby.spotify_token_expiration"
     
     init() {
         loadTokenFromStorage()
@@ -154,19 +155,27 @@ class TokenManager: ObservableObject {
     func saveToken(_ token: String, expiresIn: Int) {
         let expirationDate = Date().addingTimeInterval(TimeInterval(expiresIn))
         
+        // UI 업데이트를 메인 스레드에서 수행
         self.accessToken = token
         self.tokenExpirationDate = expirationDate
         
+        // UserDefaults 저장
         userDefaults.set(token, forKey: tokenKey)
         userDefaults.set(expirationDate, forKey: expirationKey)
+        
+        print("✅ 토큰 저장 완료: \(token.prefix(20))...")
     }
     
     func clearToken() {
-        accessToken = nil
-        tokenExpirationDate = nil
+        // UI 업데이트를 메인 스레드에서 수행
+        self.accessToken = nil
+        self.tokenExpirationDate = nil
         
+        // UserDefaults에서 제거
         userDefaults.removeObject(forKey: tokenKey)
         userDefaults.removeObject(forKey: expirationKey)
+        
+        print("🗑️ 토큰 삭제 완료")
     }
     
     private func loadTokenFromStorage() {
@@ -176,6 +185,12 @@ class TokenManager: ObservableObject {
         // Clear token if expired
         if !isTokenValid {
             clearToken()
+        }
+        
+        if let token = accessToken {
+            print("📱 저장된 토큰 로드: \(token.prefix(20))...")
+        } else {
+            print("❌ 저장된 토큰 없음")
         }
     }
     
@@ -189,9 +204,8 @@ class TokenManager: ObservableObject {
 
 // MARK: - Logger
 class APILogger {
-    static let shared = APILogger()
-    
-    private init() {}
+
+    init() {}
     
     func logRequest(_ request: URLRequest) {
         print("🌐 API Request:")
